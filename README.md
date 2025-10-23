@@ -1,5 +1,4 @@
-### Final_version
-### Bus RoutePicker: 南京邮电大学公交路线自动选择系统
+#### Bus RoutePicker: 南京邮电大学公交路线自动选择系统
 
 A bus route automatic selection system developed for Nanjing University of Posts and Telecommunications' Programming Week.
 
