@@ -64,6 +64,33 @@ typedef struct {  // 公交路线结构体
     int run_count;                                     // 每小时班次数量
 } BusRoute;
 
+// 新增：存储直达路线关键信息（用于筛选最小值）
+typedef struct {
+    char route_name[MAX_NAME_LENGTH];  // 线路名称
+    int station_num;                   // 站点数（起点到终点）
+    int total_time;                    // 总耗时（分钟）
+    int start_idx;                     // 起点索引（用于后续时间计算）
+    int end_idx;                       // 终点索引
+    int route_idx;                     // 线路索引（对应routes数组）
+    int can_arrive;
+} DirectRouteInfo;
+
+// 新增：存储换乘路线关键信息（用于筛选最小值）
+typedef struct {
+    char route1_name[MAX_NAME_LENGTH]; // 第一段线路名称
+    char route2_name[MAX_NAME_LENGTH]; // 第二段线路名称
+    char transfer[MAX_NAME_LENGTH];    // 换乘站
+    int total_station;                 // 总站点数（两段之和）
+    int total_time;                    // 总耗时（两段之和）
+    int start_idx1;                    // 第一段起点索引
+    int transfer_idx1;                 // 第一段换乘站索引
+    int transfer_idx2;                 // 第二段换乘站索引
+    int end_idx2;                      // 第二段终点索引
+    int route1_idx;                    // 第一段线路索引
+    int route2_idx;                    // 第二段线路索引
+    int can_arrive;
+} TransferRouteInfo;
+
 BusRoute routes[MAX_ROUTES];
 int route_count = 0;
 
@@ -81,6 +108,9 @@ void backup_routes();
 void load_routes_from_file(const char* file_path);
 void restore_last_routes();
 void restore_default_routes();
+
+//标记路线函数声明
+void mark_route_status();
 
 // 时间计算系统
 typedef struct {  // 路线时间信息
@@ -600,6 +630,100 @@ void restore_default_routes() {
     load_routes_from_file(DEFAULT_FILE);
 }
 
+void mark_route_status() {
+    /*
+    ***************************路线状态标记函数****************************
+    输入：无
+    输出：无
+    功能：给指定线路添加“维修”“拥堵”状态标记，或取消已有标记（修改线路名称后缀）
+    ******************************************************************
+    */
+    if (route_count == 0) {
+        printf("暂无公交线路，无法标记状态！\n");
+        return;
+    }
+
+    char route_name[MAX_NAME_LENGTH];
+    printf("请输入要标记状态的线路名称: ");
+    scanf("%s", route_name);
+
+    // 1. 查找目标线路（兼容带状态后缀的线路名）
+    int target_idx = -1;
+    char original_name[MAX_NAME_LENGTH];  // 存储不带状态后缀的原始名称
+    for (int i = 0; i < route_count; i++) {
+        // 移除可能存在的状态后缀（如“仙林1号线（维修）”→“仙林1号线”）
+        strcpy(original_name, routes[i].route_name);
+        char* status_start = strstr(original_name, "（");  // 匹配状态后缀的起始位置
+        if (status_start != NULL) {
+            *status_start = '\0';  // 截断后缀，保留原始名称
+        }
+
+        // 对比原始名称，找到目标线路
+        if (strcmp(original_name, route_name) == 0) {
+            target_idx = i;
+            break;
+        }
+    }
+
+    if (target_idx == -1) {
+        printf("未找到线路“%s”！\n", route_name);
+        return;
+    }
+
+    // 2. 显示当前线路状态（如有）
+    char current_status[20] = "正常";
+    if (strstr(routes[target_idx].route_name, "（维修）") != NULL) {
+        strcpy(current_status, "维修");
+    }
+    else if (strstr(routes[target_idx].route_name, "（拥堵）") != NULL) {
+        strcpy(current_status, "拥堵");
+    }
+    printf("当前线路状态：%s\n", current_status);
+
+    // 3. 让管理员选择操作（新增取消标记选项）
+    int status_choice;
+    printf("\n请选择操作：\n");
+    printf("1. 标记为【维修】（线路暂时无法使用）\n");
+    printf("2. 标记为【拥堵】（线路通行缓慢）\n");
+    printf("3. 取消标记（恢复为正常线路）\n");  // 新增：取消标记选项
+    printf("请选择: ");
+
+    // 输入合法性判断
+    do {
+        if (scanf("%d", &status_choice) != 1) {
+            printf("输入无效，请输入数字1-3：");
+            int c;
+            while ((c = getchar()) != '\n' && c != EOF);
+            continue;
+        }
+        if (status_choice < 1 || status_choice > 3) {
+            printf("无效选择，请输入1-3：");
+        }
+    } while (status_choice < 1 || status_choice > 3);
+
+    // 4. 根据选择更新线路名称
+    char new_route_name[MAX_NAME_LENGTH];
+    strcpy(new_route_name, original_name);  // 以原始名称为基础
+
+    switch (status_choice) {
+    case 1:
+        strcat(new_route_name, "（维修）");  // 附加维修标记
+        break;
+    case 2:
+        strcat(new_route_name, "（拥堵）");  // 附加拥堵标记
+        break;
+    case 3:
+        // 取消标记：仅保留原始名称（不附加任何后缀）
+        break;
+    }
+
+    // 5. 保存修改并备份
+    backup_routes();
+    strcpy(routes[target_idx].route_name, new_route_name);
+    save_routes();
+    printf("线路状态更新成功！\n");
+    printf("更新后线路名称：%s\n", routes[target_idx].route_name);
+}
 
 void display_all_routes() {
     /*
@@ -619,8 +743,19 @@ void display_all_routes() {
     //打印部分，通过双重循环打印每条路线的详细信息↓
     printf("\n———————————————————————所有公交线路———————————————————————\n");
     for (int i = 0; i < route_count; i++) {
-        printf("线路名称: %s\n", routes[i].route_name);
-        printf("站点数量: %d  |  首班: %d:00  |  末班: %d:00\n",
+             // 检查线路是否有状态标记（含“（维修）”或“（拥堵）”）
+            int has_status = (strstr(routes[i].route_name, "（维修）") != NULL) ||
+                (strstr(routes[i].route_name, "（拥堵）") != NULL);
+
+            if (has_status) {
+                // 有状态标记：用【!】突出显示
+                printf("线路名称: 【!】%s\n", routes[i].route_name);
+            }
+            else
+            {
+                printf("线路名称: %s\n", routes[i].route_name);
+            }
+                printf("站点数量: %d  |  首班: %d:00  |  末班: %d:00\n",
             routes[i].station_count,
             routes[i].start_time,
             routes[i].end_time);
@@ -730,6 +865,15 @@ void inquire_route(char* start, char* end, int is_ask) {
     // --------------------------------直达路线查询 --------------------------------
 
     int found_directly = 0;//found_directly标记是否找到直达路线,找到为1
+    // 改为动态分配（堆内存），避免栈溢出
+    DirectRouteInfo* direct_routes = (DirectRouteInfo*)malloc(100 * sizeof(DirectRouteInfo));
+    if (direct_routes == NULL) {
+        printf("内存分配失败，无法查询直达路线！\n");
+        return;
+    }
+    int direct_count = 0;                // 有效直达路线数量
+    int min_direct_station = INT_MAX;    // 最少站点数（初始设为最大值）
+    int min_direct_time = INT_MAX;       // 最短时间（初始设为最大值）
 
     printf("\n【直达路线】\n");
     //下面这里起点和终点的查找再同一个for循环下，意味着如果都被找到，就一定再同一个固定的i下，即同一条路线中
@@ -752,35 +896,81 @@ void inquire_route(char* start, char* end, int is_ask) {
         //索引更新完毕，检查是否都被找到↓
         if (start_idx != -1 && end_idx != -1) {  // 起点和终点都被找到
             found_directly = 1;
-            printf("线路: 坐【%s】：[%s]→[%s]\n",
-                routes[i].route_name, start, end);
+            // 计算站点数（绝对值处理反向情况）
+            int station_num = abs(end_idx - start_idx);
 
             // 计算时间并显示，总耗时包含等待时间与坐车时间
             int current_time = get_current_time();
             RouteTime rt = inquire_time(start_idx, end_idx, i, current_time);
-            if (rt.can_arrive)
-            {
+
+            // 存储当前路线信息（仅保存有效路线）
+            DirectRouteInfo info;
+            strncpy(info.route_name, routes[i].route_name, MAX_NAME_LENGTH - 1);
+            info.route_name[MAX_NAME_LENGTH - 1] = '\0';  // 安全处理字符串
+            info.station_num = station_num;
+            info.total_time = rt.sum_time;
+            info.start_idx = start_idx;
+            info.end_idx = end_idx;
+            info.route_idx = i;
+            info.can_arrive = rt.can_arrive;  // 记录是否可达
+            if (direct_count < 100) {  // 限制最大数量，避免越界
+                direct_routes[direct_count++] = info;
+            }
+
+            // 仅对可达路线更新最小值
+            if (rt.can_arrive) {
+                if (station_num < min_direct_station) min_direct_station = station_num;
+                if (rt.sum_time < min_direct_time) min_direct_time = rt.sum_time;
+            }
+        }
+    }
+
+    // 单独打印所有直达路线并标记（移出循环，避免重复）
+    if (direct_count == 0) {
+        printf("抱歉，未找到任何直达路线\n");
+    }
+    else {
+        for (int i = 0; i < direct_count; i++) {
+            DirectRouteInfo info = direct_routes[i];
+            BusRoute* route = &routes[info.route_idx];
+            int current_time = get_current_time();
+            RouteTime rt = inquire_time(info.start_idx, info.end_idx, info.route_idx, current_time);
+
+            printf("线路: 坐【%s】：[%s]→[%s]\n", info.route_name, start, end);
+            if (rt.can_arrive) {
                 printf("最近一班车离您还有 %d分钟\n", rt.wait_time);
                 printf("预计总耗时: %d分钟\n", rt.sum_time);
                 printf("预计到达时间: %d:%02d\n", rt.arrive_time / 60, rt.arrive_time % 60);
             }
-            //异常处理：若超出运营时间反馈给用户
-            else
-            {
-                printf("状态: 超出运营时间（%d:00-%d:00）\n", routes[i].start_time, routes[i].end_time);
+            else {
+                printf("状态: 超出运营时间（%d:00-%d:00）\n", route->start_time, route->end_time);
+            }
+
+            // 标记最少站点数（仅对可达路线）
+            if (info.can_arrive && info.station_num == min_direct_station) {
+                printf("★ 该路线为【最少站点数】路线（共%d站）\n", info.station_num);
+            }
+            // 标记最短时间（仅对可达路线）
+            if (info.can_arrive && info.total_time == min_direct_time) {
+                printf("★ 该路线为【最短时间】路线（共%d分钟）\n", info.total_time);
             }
             printf("------------------------------------------------\n");
         }
     }
-    //若未找到任何直达路线，也反馈给用户
-    if (!found_directly)
-    {
-        printf("抱歉，未找到任何直达路线\n");
-    }
+    free(direct_routes);  // 释放直达路线数组内存
 
     // ---------------------------------换乘路线查询 ---------------------------------
     //模仿上面的思想，定义变量found_transform以标记是否找到换乘路线，1为找到
     int found_transform = 0;
+    // 改为动态分配（堆内存），避免栈溢出
+    TransferRouteInfo* transfer_routes = (TransferRouteInfo*)malloc(500 * sizeof(TransferRouteInfo));  // 减少大小
+    if (transfer_routes == NULL) {
+        printf("内存分配失败，无法查询换乘路线！\n");
+        return;
+    }
+    int transfer_count = 0;                   // 有效换乘路线数量
+    int min_transfer_station = INT_MAX;       // 换乘最少站点数
+    int min_transfer_time = INT_MAX;          // 换乘最短时间
     printf("\n【换乘路线】\n");
     //先分别用双层for循环类比上面查找start与end各自所在的路线，并更新索引↓
     for (int start_route = 0; start_route < route_count; start_route++)
@@ -824,40 +1014,86 @@ void inquire_route(char* start, char* end, int is_ask) {
                     if (strcmp(routes[start_route].stations[s], routes[end_route].stations[e]) == 0) {
                         found_transform = 1;//找到了就更新found_transform为1
                         char* transfer = routes[start_route].stations[s];
-                        printf("换乘方案: \n");
-                        printf("先：坐【%s】: [%s]→[%s]\n",
-                            routes[start_route].route_name, start, transfer);
-                        printf("后：坐【%s】: [%s]→[%s]\n",
-                            routes[end_route].route_name, transfer, end);
 
                         // 计算两段路线时间
                         int current_time = get_current_time();
                         RouteTime rt1 = inquire_time(start_idx, s, start_route, current_time);
                         RouteTime rt2 = inquire_time(e, end_idx, end_route, rt1.arrive_time);
 
+                        // 计算总站点数和总时间
+                        int total_station = abs(s - start_idx) + abs(end_idx - e);
+                        int total_time = rt1.sum_time + rt2.sum_time;
+
+                        // 存储当前换乘路线信息（仅保存有效路线）
+                        TransferRouteInfo info;
+                        strncpy(info.route1_name, routes[start_route].route_name, MAX_NAME_LENGTH - 1);
+                        info.route1_name[MAX_NAME_LENGTH - 1] = '\0';
+                        strncpy(info.route2_name, routes[end_route].route_name, MAX_NAME_LENGTH - 1);
+                        info.route2_name[MAX_NAME_LENGTH - 1] = '\0';
+                        strncpy(info.transfer, transfer, MAX_NAME_LENGTH - 1);
+                        info.transfer[MAX_NAME_LENGTH - 1] = '\0';
+                        info.total_station = total_station;
+                        info.total_time = total_time;
+                        info.start_idx1 = start_idx;
+                        info.transfer_idx1 = s;
+                        info.transfer_idx2 = e;
+                        info.end_idx2 = end_idx;
+                        info.route1_idx = start_route;
+                        info.route2_idx = end_route;
+                        info.can_arrive = (rt1.can_arrive && rt2.can_arrive) ? 1 : 0;  // 记录是否可达
+                        if (transfer_count < 500) {  // 限制最大数量，避免越界
+                            transfer_routes[transfer_count++] = info;
+                        }
+
+                        // 仅对可达路线更新最小值
                         if (rt1.can_arrive && rt2.can_arrive) {
-                            printf("最近一班车离您还有: %d分钟（首段）\n", rt1.wait_time);
-                            printf("预计总耗时: %d分钟（首段%d分钟 + 换乘后%d分钟）\n",
-                                rt1.sum_time + rt2.sum_time, rt1.sum_time, rt2.sum_time);
-                            printf("预计到达时间: %d:%02d\n",
-                                rt2.arrive_time / 60, rt2.arrive_time % 60);
+                            if (total_station < min_transfer_station) min_transfer_station = total_station;
+                            if (total_time < min_transfer_time) min_transfer_time = total_time;
                         }
-                        //异常处理：若有任一段超出运营时间，反馈给用户
-                        else
-                        {
-                            printf("状态: 抱歉，存在路线超出运营时间\n");
-                        }
-                        printf("------------------------------------------------\n");
                     }
                 }
             }
         }
     }
-    //若未找到任何换乘路线，反馈给用户
-    if (!found_transform)
-    {
+
+    // 单独打印所有换乘路线并标记（移出循环，避免重复）
+    if (transfer_count == 0) {
         printf("无换乘路线\n");
     }
+    else {
+        for (int i = 0; i < transfer_count; i++) {
+            TransferRouteInfo info = transfer_routes[i];
+            int current_time = get_current_time();
+            RouteTime rt1 = inquire_time(info.start_idx1, info.transfer_idx1, info.route1_idx, current_time);
+            RouteTime rt2 = inquire_time(info.transfer_idx2, info.end_idx2, info.route2_idx, rt1.arrive_time);
+
+            printf("换乘方案: \n");
+            printf("先：坐【%s】: [%s]→[%s]\n", info.route1_name, start, info.transfer);
+            printf("后：坐【%s】: [%s]→[%s]\n", info.route2_name, info.transfer, end);
+
+            if (rt1.can_arrive && rt2.can_arrive) {
+                printf("最近一班车离您还有: %d分钟（首段）\n", rt1.wait_time);
+                printf("预计总耗时: %d分钟（首段%d分钟 + 换乘后%d分钟）\n",
+                    rt1.sum_time + rt2.sum_time, rt1.sum_time, rt2.sum_time);
+                printf("预计到达时间: %d:%02d\n",
+                    rt2.arrive_time / 60, rt2.arrive_time % 60);
+            }
+            else {
+                printf("状态: 抱歉，存在路线超出运营时间\n");
+            }
+
+            // 标记最少站点数（仅对可达路线）
+            if (info.can_arrive && info.total_station == min_transfer_station) {
+                printf("★ 该方案为【最少站点数】方案（共%d站）\n", info.total_station);
+            }
+            // 标记最短时间（仅对可达路线）
+            if (info.can_arrive && info.total_time == min_transfer_time) {
+                printf("★ 该方案为【最短时间】方案（共%d分钟）\n", info.total_time);
+            }
+            printf("------------------------------------------------\n");
+        }
+    }
+    free(transfer_routes);  // 释放换乘路线数组内存
 
     //下面这部分是收藏的调用，在路线查询后问用户是否要收藏
     //is_ask的作用是控制询问用户是否收藏
@@ -872,10 +1108,8 @@ void inquire_route(char* start, char* end, int is_ask) {
                 while ((c = getchar()) != '\n' && c != EOF);
                 continue;
             }
-            if (1) {
-                break;
-            }
-        } while (is_star != 1);
+            break;  // 修复原逻辑错误，只要输入是数字就跳出循环
+        } while (1);
 
         if (is_star == 1)
         {
@@ -982,13 +1216,14 @@ void admin_menu() {
         printf("1. 添加线路\n");
         printf("2. 修改线路\n");
         printf("3. 删除线路\n");
-        printf("4. 恢复上一次路线\n");  // 新增：恢复上一次（原case4移至case6）
-        printf("5. 恢复默认路线\n");     // 新增：恢复默认（原case5移至case7）
-        printf("6. 查询站点间路线\n");    // 原case4
-        printf("7. 查看所有公交线路\n");  // 原case5
-        printf("8. 注册管理员\n");        // 原case6
-        printf("9. 初始化所有账号\n");    // 原case7
-        printf("10. 退出\n");             // 原case8
+        printf("4. 恢复上一次路线\n");
+        printf("5. 标记线路状态（维修/拥堵）\n");  
+        printf("6. 恢复默认路线\n");
+        printf("7. 查询站点间路线\n");
+        printf("8. 查看所有公交线路\n");
+        printf("9. 注册管理员\n");
+        printf("10. 初始化所有账号\n");
+        printf("11. 退出\n");             
         printf("请选择: ");
 
         // 读取输入并判断是否为有效数字
@@ -1007,8 +1242,9 @@ void admin_menu() {
         case 2: modify_route(); break;
         case 3: delete_route(); break;
         case 4: restore_last_routes(); break;  // 恢复上一次
-        case 5: restore_default_routes(); break; // 恢复默认
-        case 6: {
+        case 5: mark_route_status(); break;
+        case 6: restore_default_routes(); break; // 恢复默认
+        case 7: {
             char start[MAX_NAME_LENGTH];
             char end[MAX_NAME_LENGTH];
             printf("请输入起点站：");
@@ -1019,9 +1255,9 @@ void admin_menu() {
             inquire_route(start, end, is_ask);
             break;
         }
-        case 7: display_all_routes(); break;
-        case 8: regist_admin(); break;
-        case 9:
+        case 8: display_all_routes(); break;
+        case 9: regist_admin(); break;
+        case 10:
             printf("确定要初始化所有账号吗？(1=确定,0=取消): ");
             if (scanf("%d", &comfirm) != 1) {
                 printf("输入无效，已取消操作。\n");
@@ -1044,11 +1280,11 @@ void admin_menu() {
             }
             comfirm = 0;
             break;
-        case 10: printf("退出管理员菜单。\n"); break;  // 原case8
+        case 11: printf("退出管理员菜单。\n"); break;  // 原case8
         default:
-            printf("无效选择，请输入1-10之间的数字。\n");
+            printf("无效选择，请输入1-11之间的数字。\n");
         }
-    } while (choice != 10 && comfirm == 0);  // 退出条件对应case10
+    } while (choice != 11 && comfirm == 0);  // 退出条件对应case10
 }
 
 void star_menu(char* filepath, int line_count) {
@@ -1537,7 +1773,7 @@ void arr_star(char* filepath, int line_count) {
             while ((c = getchar()) != '\n' && c != EOF);
             continue;
         }
-        if (choice != 1 && choice != 0) {
+        if (choice != 1 && choice != 0) {   
             printf("请输入0或者1！:");
         }
     } while (choice != 1 && choice != 0);
@@ -1714,8 +1950,8 @@ void view_map(char* route_name) {
     // 第2个参数是缓冲区大小（200），确保不越界
     swprintf_s(img_path, 200, L"%s.png", w_route_name);
     HWND hConsole = GetConsoleWindow();
-    // ---------- 初始化图形窗口并显示地图（修正版） ----------
-    initgraph(700, 400);  // 创建800x600窗口
+ 
+    initgraph(700, 400); 
 
     // 设置窗口标题（使用宽字符函数）
     HWND hWnd = GetHWnd();
@@ -1731,7 +1967,7 @@ void view_map(char* route_name) {
         putimage(0, 0, &img);
         settextcolor(WHITE);
         settextstyle(25, 0, L"华文楷体");
-        // 调整：Y=350（窗口底部上方50像素，避免贴边），X=150（左右居中）
+       
         outtextxy(450, 350, L"在控制台中按任意键返回");
     }
     else {
@@ -1739,7 +1975,7 @@ void view_map(char* route_name) {
         settextstyle(40, 0, L"华文楷体");
         wchar_t err[100];
         swprintf_s(err, 60, L"未找到图片：%s.png/(ㄒoㄒ)/~~", w_route_name);
-        // 调整：错误提示居中显示，Y=120（上半区）、Y=160（中间），避免超出窗口
+        // 调整：错误提示居中显示，避免超出窗口
         outtextxy(60, 120, err);
         outtextxy(120, 160, L"请检查图片是否在程序目录！");
         // 同上方，返回提示放在底部，保持风格统一
@@ -1754,7 +1990,7 @@ void show_All()
     {
         HWND hConsole = GetConsoleWindow();
         // ---------- 初始化图形窗口并显示地图（修正版） ----------
-        initgraph(700, 400);  // 创建800x600窗口
+        initgraph(700, 400);  
 
         // 设置窗口标题（使用宽字符函数）
         HWND hWnd = GetHWnd();
@@ -1763,7 +1999,7 @@ void show_All()
         // 加载图片（使用宽字符路径）
         IMAGE mapImg;
         // 注意：图片路径前加 L 表示宽字符，最后一个参数是 bool 类型（true/false）
-        if (loadimage(&mapImg, L"map.png", 700, 400, true) == 0) {  // 修正：L"map.jpg" 和 true
+        if (loadimage(&mapImg, L"map.png", 700, 400, true) == 0) {  
             putimage(0, 0, &mapImg);
         }
         else 
@@ -1772,7 +2008,7 @@ void show_All()
             settextstyle(40, 0, L"华文楷体");
             wchar_t err[100];
             swprintf_s(err, 60, L"未找到图片：map.png/(ㄒoㄒ)/~~");
-            // 调整：错误提示居中显示，Y=120（上半区）、Y=160（中间），避免超出窗口
+            // 调整：错误提示居中显示,避免超出窗口
             outtextxy(60, 120, err);
             outtextxy(120, 160, L"请检查图片是否在程序目录！");
             // 同上方，返回提示放在底部，保持风格统一
@@ -1786,7 +2022,7 @@ int main() {
 
         HWND hConsole = GetConsoleWindow();
         // ---------- 初始化图形窗口并显示地图（修正版） ----------
-        initgraph(500, 600);  // 创建800x600窗口
+        initgraph(500, 600);  
 
         // 设置窗口标题（使用宽字符函数）
         HWND hWnd = GetHWnd();
@@ -1794,16 +2030,16 @@ int main() {
 
         // 加载图片（使用宽字符路径）
         IMAGE coverImg;
-        // 注意：图片路径前加 L 表示宽字符，最后一个参数是 bool 类型（true/false）
-        if (loadimage(&coverImg, L"cover.png", 500, 600, true) == 0) {  // 修正：L"map.jpg" 和 true
+      
+        if (loadimage(&coverImg, L"cover.png", 500, 600, true) == 0) {  
             putimage(0, 0, &coverImg);
         }
         else {
-            settextcolor(RED);          // 错误提示用红色，更醒目
+            settextcolor(RED);          // 错误提示用红色
             settextstyle(30, 0, L"华文楷体");  // 字体大小16号，适配小窗口
-            // 提示1：居中显示“加载失败”核心信息（X=80，Y=150，避免超出500宽的窗口）
+            // 提示1：居中显示“加载失败”核心信息
             outtextxy(80, 150, L"封面图片加载失败……(T_T)");
-            // 提示2：在核心信息下方，补充检查建议（X=50，Y=180，与上一行间距30像素，清晰分层）
+            // 提示2：在核心信息下方，补充检查建议
             outtextxy(15, 400, L"请检查封面(cover.png)是否在程序目录下");
         }
         ShowWindow(hConsole, SW_RESTORE);  // 从最小化恢复
@@ -1843,7 +2079,7 @@ int main() {
                 fflush(stdout);
                 Sleep(3000);
                 printf("退出系统。\n");
-                printf("公交路线自动化选择系统————————————制作人：Q24010511 朱勇锬 Q24010516 沈子岩 Q24010518 陈殷骏 \n "); 
+                printf("公交路线自动化选择系统————————————制作人： Q24010518 陈殷骏 Q24010511 朱勇锬 Q24010516 沈子岩 \n "); 
                 break;
             default: printf("无效选择，请重新输入。\n");
             }
