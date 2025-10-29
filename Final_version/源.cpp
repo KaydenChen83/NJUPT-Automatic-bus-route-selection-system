@@ -25,7 +25,6 @@ typedef struct {  // 用户结构体
 User users[MAX_USERS];
 int user_count = 0;
 int adm_count = 0;
-int comfirm = 0;
 
 // 函数声明（用户管理）
 void regist_user();
@@ -130,8 +129,10 @@ void user_menu();
 void admin_menu();
 void star_menu(char* filepath, int line_count);
 
+
 void view_map(char* route_name);
 void show_All();
+void baby_bus();
 
 int station_exists(char* station);
 void check_input(char* start, char* end, int* start_valid, int* end_valid);
@@ -234,12 +235,16 @@ void regist_user() {  // 注册普通用户
     int is_duplicate = 0;
     do {
         /*重复性检测*/
+        is_duplicate = 0;
+        printf("\n");
         printf("请输入用户名: ");
         scanf("%s", temp_username);
         for (int i = 0; i < user_count; i++) {
             if (strcmp(users[i].username, temp_username) == 0) {
                 is_duplicate = 1;
+                printf("\n");
                 printf("用户名已存在，请重新输入。\n");
+                printf("\n");
                 break;
             }
         }
@@ -252,7 +257,9 @@ void regist_user() {  // 注册普通用户
     users[user_count].is_admin = 0;
     user_count++;
     save_users();
+    printf("\n");
     printf("注册成功！\n");
+    printf("\n");
 }
 
 void regist_admin() {  // 注册管理员
@@ -581,6 +588,7 @@ void delete_route() {
             backup_routes();                                          // 备份这一步的数据
             route_count--;                                            // 总路数-1
             printf("线路删除成功！\n");
+            save_routes();
             return;
         }
     }
@@ -743,19 +751,19 @@ void display_all_routes() {
     //打印部分，通过双重循环打印每条路线的详细信息↓
     printf("\n———————————————————————所有公交线路———————————————————————\n");
     for (int i = 0; i < route_count; i++) {
-             // 检查线路是否有状态标记（含“（维修）”或“（拥堵）”）
-            int has_status = (strstr(routes[i].route_name, "（维修）") != NULL) ||
-                (strstr(routes[i].route_name, "（拥堵）") != NULL);
+        // 检查线路是否有状态标记（含“（维修）”或“（拥堵）”）
+        int has_status = (strstr(routes[i].route_name, "（维修）") != NULL) ||
+            (strstr(routes[i].route_name, "（拥堵）") != NULL);
 
-            if (has_status) {
-                // 有状态标记：用【!】突出显示
-                printf("线路名称: 【!】%s\n", routes[i].route_name);
-            }
-            else
-            {
-                printf("线路名称: %s\n", routes[i].route_name);
-            }
-                printf("站点数量: %d  |  首班: %d:00  |  末班: %d:00\n",
+        if (has_status) {
+            // 有状态标记：用【!】突出显示
+            printf("线路名称: 【!】%s\n", routes[i].route_name);
+        }
+        else
+        {
+            printf("线路名称: %s\n", routes[i].route_name);
+        }
+        printf("站点数量: %d  |  首班: %d:00  |  末班: %d:00\n",
             routes[i].station_count,
             routes[i].start_time,
             routes[i].end_time);
@@ -874,7 +882,9 @@ void inquire_route(char* start, char* end, int is_ask) {
     int direct_count = 0;                // 有效直达路线数量
     int min_direct_station = INT_MAX;    // 最少站点数（初始设为最大值）
     int min_direct_time = INT_MAX;       // 最短时间（初始设为最大值）
-
+    printf("\n");
+    printf("\n");
+    printf("****************可达线路如下所示****************");
     printf("\n【直达路线】\n");
     //下面这里起点和终点的查找再同一个for循环下，意味着如果都被找到，就一定再同一个固定的i下，即同一条路线中
     for (int i = 0; i < route_count; i++)
@@ -1099,11 +1109,13 @@ void inquire_route(char* start, char* end, int is_ask) {
     //is_ask的作用是控制询问用户是否收藏
     int is_star;
     if ((found_directly || found_transform) && is_ask) {
+        printf("\n");
+        printf("\n");
         printf("是否需要收藏该起点终点信息？（1是，其他数字表示退出）：");
-
         do {
             if (scanf("%d", &is_star) != 1) {
                 printf("输入无效，请重新输入（1是，其他数字表示退出）：");
+                printf("\n");
                 int c;
                 while ((c = getchar()) != '\n' && c != EOF);
                 continue;
@@ -1114,6 +1126,9 @@ void inquire_route(char* start, char* end, int is_ask) {
         if (is_star == 1)
         {
             star_routes(start, end);
+        }
+        else {
+            printf("\n\n");
         }
     }
 }
@@ -1131,12 +1146,20 @@ void user_menu() {
     //呈现用户菜单选项
 
     do {
-        printf("\n【用户菜单】\n");
-        printf("1. 查询站点间路线\n");
-        printf("2. 查看所有公交线路\n");
-        printf("3. 查看收藏夹\n");
-        printf("4. 退出\n");
-        printf("请选择: ");
+        printf("\n                      **************【用户菜单】**************\n");
+        printf("                      **                                    **\n");
+        printf("                      **     1. 查询站点间路线              **\n");
+        printf("                      **                                    **\n");
+        printf("                      **     2. 查看所有公交线路            **\n");
+        printf("                      **                                    **\n");
+        printf("                      **     3. 查看收藏夹                  **\n");
+        printf("                      **                                    **\n");
+        printf("                      **     4. 退出                        **\n");
+        printf("                      **                                    **\n");
+        printf("                      ****************************************\n");
+        printf("\n");
+        printf("\n");
+        printf("请输入你的选择: ");
         //%d 格式下，scanf 成功读取数字时返回 1，否则返回 0 或 EOF，我们利用这个特点来进行异常处理
         if (scanf("%d", &choice) != 1) {
             printf("输入无效！请输入数字1-4。\n");
@@ -1152,6 +1175,7 @@ void user_menu() {
         case 1: {
             char start[MAX_NAME_LENGTH];
             char end[MAX_NAME_LENGTH];
+            printf("\n");
             printf("请输入起点站：");
             scanf("%s", start);
             printf("请输入终点站：");
@@ -1162,11 +1186,24 @@ void user_menu() {
         case 2:
             display_all_routes();
             show_All();
-            printf("是否查看指定线路的地图信息？（1是，其他数字表示退出）\n");
             int if_view_map;
-            scanf("%d", &if_view_map);
+            do {
+                printf("是否查看指定线路的地图信息？（1是，其他数字表示退出）:");
+                if (scanf("%d", &if_view_map) != 1) {
+                    printf("输入无效！请输入数字:\n");
+                    // 清空输入缓冲区（处理残留的非数字字符）
+                    int c;
+                    while ((c = getchar()) != '\n' && c != EOF);
+                    // 给一个默认值，确保switch进入default
+                    continue;
+                }
+                else {
+                    break;
+                }
+            } while (1);
             if (if_view_map == 1)
             {
+                printf("\n");
                 printf("请输入要查看地图的线路名称：");
                 char map_route_name[MAX_NAME_LENGTH];
                 scanf("%s", map_route_name);
@@ -1212,19 +1249,22 @@ void admin_menu() {
     int choice;
     int comfirm = 0;  // 初始化
     do {
-        printf("\n【管理员菜单】\n");
-        printf("1. 添加线路\n");
-        printf("2. 修改线路\n");
-        printf("3. 删除线路\n");
-        printf("4. 恢复上一次路线\n");
-        printf("5. 标记线路状态（维修/拥堵）\n");  
-        printf("6. 恢复默认路线\n");
-        printf("7. 查询站点间路线\n");
-        printf("8. 查看所有公交线路\n");
-        printf("9. 注册管理员\n");
-        printf("10. 初始化所有账号\n");
-        printf("11. 退出\n");             
-        printf("请选择: ");
+        printf("\n                        **************【管理员菜单】************\n");
+        printf("                        **                                    **\n");
+        printf("                        **      1. 添加线路                   **\n");
+        printf("                        **      2. 修改线路                   **\n");
+        printf("                        **      3. 删除线路                   **\n");
+        printf("                        **      4. 恢复上一次路线             **\n");
+        printf("                        **      5. 标记线路状态（维修/拥堵）  **\n");
+        printf("                        **      6. 恢复默认路线               **\n");
+        printf("                        **      7. 查询站点间路线             **\n");
+        printf("                        **      8. 查看所有公交线路           **\n");
+        printf("                        **      9. 注册管理员                 **\n");
+        printf("                        **      10. 初始化所有账号            **\n");
+        printf("                        **      11. 退出                      **\n");
+        printf("                        **                                    **\n");
+        printf("                        ****************************************\n");
+        printf("请输入您的选择: ");
 
         // 读取输入并判断是否为有效数字
         if (scanf("%d", &choice) != 1) {
@@ -1269,6 +1309,7 @@ void admin_menu() {
             if (comfirm == 1)
             {
                 initialize_users();
+                return;
             }
             else if (comfirm == 0)
             {
@@ -1297,14 +1338,19 @@ void star_menu(char* filepath, int line_count) {
     */
     int choice;
     do {
-        printf("\n【功能选择】\n");
-        printf("1. 管理收藏夹\n");
-        printf("2. 使用收藏夹\n");
-        printf("3. 退出\n");
-        printf("请选择: ");
+        printf("\n                      *************【功能选择】*************\n");
+        printf("                      **                                  **\n");
+        printf("                      **     1. 管理收藏夹                **\n");
+        printf("                      **                                  **\n");
+        printf("                      **     2. 使用收藏夹                **\n");
+        printf("                      **                                  **\n");
+        printf("                      **     3. 退出                      **\n");
+        printf("                      **************************************\n\n\n");
+        printf("请输入您的选择: ");
 
         if (scanf("%d", &choice) != 1) {                   //修改点11
-            printf("输入无效！\n\n");
+            printf("\n输入无效！\n\n");
+            printf("\n");
             int c;
             while ((c = getchar()) != '\n' && c != EOF);     // 清空输入缓冲区
             continue;
@@ -1321,7 +1367,8 @@ void star_menu(char* filepath, int line_count) {
         case 3: {
             break;
         }
-        default: printf("无效选择，请重新输入。\n");
+        default: printf("\n无效选择，请重新输入！\n");
+            printf("\n");
         }
     } while (choice != 3);
 }
@@ -1354,13 +1401,14 @@ void initialize_users()
 //登录操作
 void login() {
     /*
-*****************************登录函数*****************************
-输入：无
-输出：无
-功能：输入用户名、密码，并跳转至对应的管理员/用户界面
-******************************************************************
-*/
+    *****************************登录函数*****************************
+    输入：无
+    输出：无
+    功能：输入用户名、密码，并跳转至对应的管理员/用户界面
+    ******************************************************************
+    */
     char username[MAX_NAME_LENGTH], password[MAX_NAME_LENGTH];
+    printf("\n");
     printf("请输入用户名: ");
     scanf("%s", username);
     printf("请输入密码: ");
@@ -1378,7 +1426,9 @@ void login() {
             return;  // 登录成功后退出函数
         }
     }
+    printf("\n");
     printf("用户名或密码错误！\n");
+    printf("\n");
 }
 
 
@@ -1592,7 +1642,7 @@ int display_star(const char* search_path, char filenames[][MAX_NAME_LENGTH]) {
                 printf("%d. %s\n", ++file_count, filenames[file_count - 1]);
             }
             else {
-                printf("警告：文件数量超过上限（100），后续文件将被忽略\n");
+                printf("\n警告：文件数量超过上限（100），后续文件将被忽略\n");
             }
         }
     } while (FindNextFileA(hFind, &find_data) != 0);
@@ -1601,7 +1651,7 @@ int display_star(const char* search_path, char filenames[][MAX_NAME_LENGTH]) {
 
     // 处理无.txt文件的情况
     if (file_count == 0) {
-        printf("收藏文件夹中没有找到收藏文件\n");
+        printf("\n收藏文件夹中没有找到收藏文件\n");
         return 0;
     }
 
@@ -1615,7 +1665,7 @@ void open_startxt(char* filepath) {
     ************************收藏夹文件内容展示函数****************************
     输入：collection文件夹内某文件的路径
     输出：无
-    功能：展示collection文件夹中的所有文件名称
+    功能：展示文件夹内文件内容
     ***********************************************************************
     */
     FILE* fp = fopen(filepath, "r");
@@ -1638,7 +1688,7 @@ void open_startxt(char* filepath) {
         line_count++;
         printf("%d、%s", line_count, line);                            //打序号（行数）与文件名称
     }
-    printf("----------------------------------\n");
+    printf("\n");
 
     fclose(fp);                                                        // 关闭文件
 
@@ -1685,7 +1735,7 @@ void search_star(int is_ask) {
     /*设置原因：编写代码时由于初始设置大小过小，一直在报错。费尽千辛万苦才发现问题*/
     if (path_len < 0 || path_len >= sizeof(search_path))
     {
-        printf("错误：搜索路径过长，超出缓冲区限制\n");
+        printf("错误：搜索路径过长，超出缓冲区限制\n\n");
         return;
     }
     search_path[sizeof(search_path) - 1] = '\0';                      // 添加字符串结束符
@@ -1696,6 +1746,7 @@ void search_star(int is_ask) {
 
     /*如果没有查询到txt文件，就自动退出*/
     if (file_count == 0) {
+        printf("\n\n没有查询到收藏夹文件......\n\n");
         return;
     }
 
@@ -1712,12 +1763,12 @@ void search_star(int is_ask) {
 
         // 4. 让用户选择要打开的文件
         int choice;
-        printf("请选择要打开的文件（输入序号1-%d）：", file_count);
+        printf("\n\n请选择要打开的文件（输入序号1-%d）：", file_count);
 
         /*输入合法性判断*/
         while (1) {
             if (scanf("%d", &choice) != 1) {
-                printf("输入无效，请输入数字：");
+                printf("\n输入无效，请输入数字：");
                 int c;
                 while ((c = getchar()) != '\n' && c != EOF);
                 continue;
@@ -1725,7 +1776,7 @@ void search_star(int is_ask) {
             if (choice >= 1 && choice <= file_count) {              // 检查序号是否在有效范围
                 break;
             }
-            printf("序号无效，请输入1-%d之间的数字：", file_count);
+            printf("\n序号无效，请输入1-%d之间的数字：", file_count);
         }
 
 
@@ -1741,9 +1792,10 @@ void search_star(int is_ask) {
             filenames[choice - 1]
         );
 
+
         /*检查路径是否过长*/
         if (path_len < 0 || path_len >= sizeof(target_file)) {
-            printf("错误：目标文件路径过长，无法打开\n");
+            printf("\n错误：目标文件路径过长，无法打开\n");
             return;
         }
         target_file[sizeof(target_file) - 1] = '\0';                 // 强制添加结束符
@@ -1773,7 +1825,7 @@ void arr_star(char* filepath, int line_count) {
             while ((c = getchar()) != '\n' && c != EOF);
             continue;
         }
-        if (choice != 1 && choice != 0) {   
+        if (choice != 1 && choice != 0) {
             printf("请输入0或者1！:");
         }
     } while (choice != 1 && choice != 0);
@@ -1787,7 +1839,7 @@ void arr_star(char* filepath, int line_count) {
             return;
         }
 
-        printf("请输入您想要删除的路线序号：（退出请输入不存在的路线号码）");
+        printf("\n请输入您想要删除的路线序号：（退出请输入不存在的路线号码）");
 
         int route_num;                                           //用于记录选中的序号（行数）
         do {
@@ -1845,18 +1897,18 @@ void use_star(char* filepath, int line_count) {
 
     int choice;
     int route_num;
-    printf("是否需要使用该收藏夹作为起点与终点的选择样本？（1是/0否）：");
+    printf("\n是否需要使用该收藏夹作为起点与终点的选择样本？（1是/0否）：");
 
     /*合法输入检测*/
     do {
         if (scanf("%d", &choice) != 1) {
-            printf("输入无效！\n");
+            printf("\n输入无效！\n");
             int c;
             while ((c = getchar()) != '\n' && c != EOF);
             continue;
         }
         if (choice != 1 && choice != 0) {
-            printf("请输入0或者1！:");
+            printf("\n请输入0或者1！:");
         }
     } while (choice != 1 && choice != 0);
 
@@ -1872,13 +1924,13 @@ void use_star(char* filepath, int line_count) {
         /*输入合法性检测*/
         do {
             if (scanf("%d", &route_num) != 1) {
-                printf("输入无效！\n");
+                printf("\n输入无效！\n");
                 int c;
                 while ((c = getchar()) != '\n' && c != EOF);
                 continue;
             }
             if (route_num > line_count || route_num < 1) {
-                printf("请输入正确的路线！\n");
+                printf("\n请输入正确的路线！");
                 continue;
             }
             else {
@@ -1940,6 +1992,108 @@ void use_star(char* filepath, int line_count) {
     }
 }
 
+
+
+// 公交车动画及正确的THANKYOU显示
+void baby_bus() {
+    // 公交车移动阶段
+    for (int i = 1; i <= 8; i++) {
+        system("cls");
+        // 上方空白
+        for (int k = 0; k < 5; k++) printf("\n");
+        // 左侧空白（控制公交车右移）
+        for (int j = 0; j <= 10 * i; j++) printf(" ");
+        // 公交车图形
+        printf(" __________________________\n");
+        for (int j = 0; j <= 10 * i; j++) printf(" ");
+        printf(" |  _   _   _   _   _  |  |\n");
+        for (int j = 0; j <= 10 * i; j++) printf(" ");
+        printf(" | |_| |_| |_| |_| |_|  |_|\n");
+        for (int j = 0; j <= 10 * i; j++) printf(" ");
+        printf(" |_____________________|--|\n");
+        for (int j = 0; j <= 10 * i; j++) printf(" ");
+        printf(" |_____/ |   宝宝巴士  | o|\n");
+        for (int j = 0; j <= 10 * i; j++) printf(" ");
+        printf(" |_______|_____________|__|\n");
+        for (int j = 0; j <= 10 * i; j++) printf(" ");
+        printf("     (O)           (O)\n");
+        fflush(stdout);
+        Sleep(300);
+    }
+
+
+
+    int THANKYOU[7][60] = {
+        {1, 1, 1, 1, 1, 0, 0 , 1, 0, 0, 1, 0, 0 , 0, 0, 1, 0, 0, 0, 0 , 1, 0, 0, 0, 1, 0, 0 , 1, 0, 0, 0, 1, 0, 0 , 0 , 0 , 1, 0, 0, 0, 1, 0, 0 , 1, 1, 1, 1, 0, 0 , 1, 0, 0, 1, 0, 0, 1,1}, // T
+        {0, 0, 1, 0, 0, 0, 0 , 1, 0, 0, 1, 0, 0 , 0, 1, 0, 1, 0, 0, 0 , 1, 0, 0, 0, 1, 0, 0 , 1, 0, 0, 1, 0, 0, 0 , 0 , 0 , 0, 1, 0, 1, 0, 0, 0 , 1, 0, 0, 1, 0, 0 , 1, 0, 0, 1, 0, 0, 1,1}, // H
+        {0, 0, 1, 0, 0, 0, 0 , 1, 0, 0, 1, 0, 0 , 1, 0, 0, 0, 1, 0, 0 , 1, 0, 0, 0, 1, 0, 0 , 1, 0, 1, 0, 0, 0, 0 , 0 , 0 , 0, 0, 1, 0, 0, 0, 0 , 1, 0, 0, 1, 0, 0 , 1, 0, 0, 1, 0, 0, 1,1}, // A
+        {0, 0, 1, 0, 0, 0, 0 , 1, 1, 1, 1, 0, 0 , 1, 1, 1, 1, 1, 0, 0 , 1, 1, 0, 0, 1, 0, 0 , 1, 1, 0, 0, 0, 0, 0 , 0 , 0 , 0, 0, 1, 0, 0, 0, 0 , 1, 0, 0, 1, 0, 0 , 1, 0, 0, 1, 0, 0, 1,1}, // N
+        {0, 0, 1, 0, 0, 0, 0 , 1, 0, 0, 1, 0, 0 , 1, 0, 0, 0, 1, 0, 0 , 1, 0, 1, 0, 1, 0, 0 , 1, 0, 1, 0, 0, 0, 0 , 0 , 0 , 0, 0, 1, 0, 0, 0, 0 , 1, 0, 0, 1, 0, 0 , 1, 0, 0, 1, 0, 0, 1,1}, // K
+        {0, 0, 1, 0, 0, 0, 0 , 1, 0, 0, 1, 0, 0 , 1, 0, 0, 0, 1, 0, 0 , 1, 0, 0, 1, 1, 0, 0 , 1, 0, 0, 1, 0, 0, 0 , 0 , 0 , 0, 0, 1, 0, 0, 0, 0 , 1, 0, 0, 1, 0, 0 , 1, 0, 0, 1, 0, 0, 0,0}, // Y
+        {0, 0, 1, 0, 0, 0, 0 , 1, 0, 0, 1, 0, 0 , 1, 0, 0, 0, 1, 0, 0 , 1, 0, 0, 0, 1, 0, 0 , 1, 0, 0, 0, 1, 0, 0 , 0 , 0 , 0, 0, 1, 0, 0, 0, 0 , 1, 1, 1, 1, 0, 0 , 1, 1, 1, 1, 0, 0, 1,1} , // O
+    };
+
+
+    // 收集所有需要绘制的点坐标
+    int points[300][2] = { 0 };
+    int count = 0;
+    for (int y = 0; y < 7; y++) {
+        for (int x = 0; x < 60; x++) {
+            if (THANKYOU[y][x] == 1) {
+                points[count][0] = x;  // x坐标
+                points[count][1] = y;  // y坐标
+                count++;
+            }
+        }
+    }
+
+    // 创建绘制缓冲区
+    char buffer[7][60 + 1];
+    for (int y = 0; y < 7; y++) {
+        for (int x = 0; x < 60; x++) {
+            buffer[y][x] = ' ';
+        }
+        buffer[y][60] = '\0';  // 字符串结束符
+    }
+
+    // 逐笔绘制THANKYOU（左侧显示，右侧保持公交车）
+    for (int i = 0; i < count; i++) {
+        system("cls");
+        // 上方空白
+        for (int k = 0; k < 5; k++) printf("\n");
+
+        // 更新当前笔画点
+        int x = points[i][0];
+        int y = points[i][1];
+        buffer[y][x] = '*';
+
+        // 打印每一行（左侧THANKYOU + 间隔 + 右侧公交车）
+        for (int row = 0; row < 7; row++) {
+            // 左侧：THANKYOU当前状态
+            printf("%s", buffer[row]);
+            // 中间间隔
+            for (int s = 0; s < 8; s++) printf(" ");
+            // 右侧：公交车对应行
+            switch (row) {
+            case 0: printf("                 __________________________\n"); break;
+            case 1: printf("                 |  _   _   _   _   _  |  |\n"); break;
+            case 2: printf("                 | |_| |_| |_| |_| |_|  |_|\n"); break;
+            case 3: printf("                 |_____________________|--|\n"); break;
+            case 4: printf("                 |_____/ |   宝宝巴士  | o|\n"); break;
+            case 5: printf("                 |_______|_____________|__|\n"); break;
+            case 6: printf("                     (O)           (O)\n"); break;
+            case 7: printf("                                      \n"); break;
+            }
+        }
+        fflush(stdout);
+        Sleep(5);  // 每笔间隔5ms
+    }
+
+    printf("\n\n\n");
+    // 全部绘制完成后停留2秒
+    Sleep(2000);
+}
+
 void view_map(char* route_name) {
     // 1. 将ANSI字符串转换为宽字符
     wchar_t w_route_name[MAX_NAME_LENGTH];
@@ -1950,8 +2104,8 @@ void view_map(char* route_name) {
     // 第2个参数是缓冲区大小（200），确保不越界
     swprintf_s(img_path, 200, L"%s.png", w_route_name);
     HWND hConsole = GetConsoleWindow();
- 
-    initgraph(700, 400); 
+
+    initgraph(700, 400);
 
     // 设置窗口标题（使用宽字符函数）
     HWND hWnd = GetHWnd();
@@ -1967,7 +2121,7 @@ void view_map(char* route_name) {
         putimage(0, 0, &img);
         settextcolor(WHITE);
         settextstyle(25, 0, L"华文楷体");
-       
+
         outtextxy(450, 350, L"在控制台中按任意键返回");
     }
     else {
@@ -1987,103 +2141,111 @@ void view_map(char* route_name) {
 }
 
 void show_All()
-    {
-        HWND hConsole = GetConsoleWindow();
-        // ---------- 初始化图形窗口并显示地图（修正版） ----------
-        initgraph(700, 400);  
+{
+    HWND hConsole = GetConsoleWindow();
+    // ---------- 初始化图形窗口并显示地图（修正版） ----------
+    initgraph(700, 400);
 
-        // 设置窗口标题（使用宽字符函数）
-        HWND hWnd = GetHWnd();
-        SetWindowTextW(hWnd, L"南京大学城公交路线总图");  // L表示宽字符，W表示Unicode版本函数
+    // 设置窗口标题（使用宽字符函数）
+    HWND hWnd = GetHWnd();
+    SetWindowTextW(hWnd, L"南京大学城公交路线总图");  // L表示宽字符，W表示Unicode版本函数
 
-        // 加载图片（使用宽字符路径）
-        IMAGE mapImg;
-        // 注意：图片路径前加 L 表示宽字符，最后一个参数是 bool 类型（true/false）
-        if (loadimage(&mapImg, L"map.png", 700, 400, true) == 0) {  
-            putimage(0, 0, &mapImg);
-        }
-        else 
-        {
-            settextcolor(RED);
-            settextstyle(40, 0, L"华文楷体");
-            wchar_t err[100];
-            swprintf_s(err, 60, L"未找到图片：map.png/(ㄒoㄒ)/~~");
-            // 调整：错误提示居中显示,避免超出窗口
-            outtextxy(60, 120, err);
-            outtextxy(120, 160, L"请检查图片是否在程序目录！");
-            // 同上方，返回提示放在底部，保持风格统一
-            outtextxy(250, 300, L"按任意键返回");
-        }
-        ShowWindow(hConsole, SW_RESTORE);  // 从最小化恢复
-        ShowWindow(hConsole, SW_SHOW);
+    // 加载图片（使用宽字符路径）
+    IMAGE mapImg;
+    // 注意：图片路径前加 L 表示宽字符，最后一个参数是 bool 类型（true/false）
+    if (loadimage(&mapImg, L"map.png", 700, 400, true) == 0) {
+        putimage(0, 0, &mapImg);
     }
+    else
+    {
+        settextcolor(RED);
+        settextstyle(40, 0, L"华文楷体");
+        wchar_t err[100];
+        swprintf_s(err, 60, L"未找到图片：map.png/(ㄒoㄒ)/~~");
+        // 调整：错误提示居中显示,避免超出窗口
+        outtextxy(60, 120, err);
+        outtextxy(120, 160, L"请检查图片是否在程序目录！");
+        // 同上方，返回提示放在底部，保持风格统一
+        outtextxy(250, 300, L"按任意键返回");
+    }
+    ShowWindow(hConsole, SW_RESTORE);  // 从最小化恢复
+    ShowWindow(hConsole, SW_SHOW);
+}
+
 
 int main() {
+    HWND hConsole = GetConsoleWindow();
+    // ---------- 初始化图形窗口并显示地图（修正版） ----------
+    initgraph(500, 600);
 
-        HWND hConsole = GetConsoleWindow();
-        // ---------- 初始化图形窗口并显示地图（修正版） ----------
-        initgraph(500, 600);  
+    // 设置窗口标题（使用宽字符函数）
+    HWND hWnd = GetHWnd();
+    SetWindowTextW(hWnd, L"欢迎进入南京大学城公交查询系统");  // L表示宽字符，W表示Unicode版本函数
 
-        // 设置窗口标题（使用宽字符函数）
-        HWND hWnd = GetHWnd();
-        SetWindowTextW(hWnd, L"欢迎进入南京大学城公交查询系统");  // L表示宽字符，W表示Unicode版本函数
+    // 加载图片（使用宽字符路径）
+    IMAGE coverImg;
 
-        // 加载图片（使用宽字符路径）
-        IMAGE coverImg;
-      
-        if (loadimage(&coverImg, L"cover.png", 500, 600, true) == 0) {  
-            putimage(0, 0, &coverImg);
-        }
-        else {
-            settextcolor(RED);          // 错误提示用红色
-            settextstyle(30, 0, L"华文楷体");  // 字体大小16号，适配小窗口
-            // 提示1：居中显示“加载失败”核心信息
-            outtextxy(80, 150, L"封面图片加载失败……(T_T)");
-            // 提示2：在核心信息下方，补充检查建议
-            outtextxy(15, 400, L"请检查封面(cover.png)是否在程序目录下");
-        }
-        ShowWindow(hConsole, SW_RESTORE);  // 从最小化恢复
-        ShowWindow(hConsole, SW_SHOW);
-        load_routes();   // 加载路线数据
-        load_users();    // 加载用户数据
-
-        // 若无用户数据，初始化默认管理员
-        if (user_count == 0) {
-            strcpy(users[user_count].username, "admin");
-            strcpy(users[user_count].password, "123456");
-            users[user_count].is_admin = 1;
-            user_count++;
-            adm_count++;
-            save_users();
-        }
-
-        int choice;
-        do {
-            printf("\n【欢迎进入南京大学城公交查询系统】\n");
-            printf("1. 登录\n");
-            printf("2. 注册普通用户\n");
-            printf("3. 退出\n");
-            printf("请选择: ");
-            if (scanf("%d", &choice) != 1) {
-                printf("输入无效！请输入数字1-3。\n");
-                int c;
-                while ((c = getchar()) != '\n' && c != EOF);
-                choice = 0;
-                continue;
-            }
-            switch (choice) {
-            case 1: login(); break;
-            case 2: regist_user(); break;
-            case 3: printf("退出系统。\n");
-                printf("感谢您的使用！系统将在3秒后关闭...\n");
-                fflush(stdout);
-                Sleep(3000);
-                printf("退出系统。\n");
-                printf("公交路线自动化选择系统————————————制作人： Q24010518 陈殷骏 Q24010511 朱勇锬 Q24010516 沈子岩 \n "); 
-                break;
-            default: printf("无效选择，请重新输入。\n");
-            }
-        } while (choice != 3);
-
-        return 0;
+    if (loadimage(&coverImg, L"cover.png", 500, 600, true) == 0) {
+        putimage(0, 0, &coverImg);
     }
+    else {
+        settextcolor(RED);          // 错误提示用红色
+        settextstyle(30, 0, L"华文楷体");  // 字体大小16号，适配小窗口
+        // 提示1：居中显示“加载失败”核心信息
+        outtextxy(80, 150, L"封面图片加载失败……(T_T)");
+        // 提示2：在核心信息下方，补充检查建议
+        outtextxy(15, 400, L"请检查封面(cover.png)是否在程序目录下");
+    }
+    ShowWindow(hConsole, SW_RESTORE);  // 从最小化恢复
+    ShowWindow(hConsole, SW_SHOW);
+
+    load_routes();   // 加载路线数据
+    load_users();    // 加载用户数据
+
+    // 若无用户数据，初始化默认管理员
+    if (user_count == 0) {
+        strcpy(users[user_count].username, "admin");
+        strcpy(users[user_count].password, "123456");
+        users[user_count].is_admin = 1;
+        user_count++;
+        adm_count++;
+        save_users();
+    }
+
+    int choice;
+    do {
+        printf("\n\n\n\n\n");
+        printf("                    *************【欢迎进入南京大学城公交查询系统】**********\n");
+        printf("                    **                                                     +*\n");
+        printf("                    **     1. 登录                                         **\n");
+        printf("                    **                                                     +*\n");
+        printf("                    **     2. 注册普通用户                                 **\n");
+        printf("                    **                                                     +*\n");
+        printf("                    **     3. 退出                                         +*\n");
+        printf("                    **                                                     +*\n");
+        printf("                    *********************************************************\n\n\n\n");
+
+        printf("请输入您的选择: ");
+        if (scanf("%d", &choice) != 1) {
+            printf("\n");
+            printf("输入无效！请输入数字1-3!\n");
+            printf("\n");
+            int c;
+            while ((c = getchar()) != '\n' && c != EOF);
+            choice = 0;
+            continue;
+        }
+        switch (choice) {
+        case 1: login(); break;
+        case 2: regist_user(); break;
+        case 3: printf("退出系统。\n");
+            baby_bus();
+            printf("感谢一路相伴，已安全抵达旅程终点~\n\n\n");
+            printf("公交路线自动化选择系统————————————制作人： Q24010518 陈殷骏 Q24010511 朱勇锬 Q24010516 沈子岩 \n ");
+            break;
+        default: printf("无效选择，请重新输入。\n");
+        }
+    } while (choice != 3);
+
+    return 0;
+}
